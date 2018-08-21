@@ -49,7 +49,8 @@ class FFMPEG_VideoReader:
                 self.size = target_resolution
         self.resize_algo = resize_algo
 
-        self.duration = infos['video_duration']
+        self.file_start = infos['start']
+        self.duration = infos['video_duration'] + self.file_start
         self.ffmpeg_duration = infos['duration']
         self.nframes = infos['video_nframes']
 
@@ -78,6 +79,7 @@ class FFMPEG_VideoReader:
 
         self.close() # if any
 
+        starttime -= self.file_start
         if starttime != 0 :
             offset = min(1, starttime)
             i_arg = ['-ss', "%.06f" % (starttime - offset),
@@ -289,6 +291,10 @@ def ffmpeg_parse_infos(filename, print_infos=False, check_duration=True,
             raise IOError(("MoviePy error: failed to read the duration of file %s.\n"
                            "Here are the file infos returned by ffmpeg:\n\n%s")%(
                               filename, infos))
+
+    line = [l for l in lines if 'start: ' in l][0]
+    match = re.findall("start: (-?[0-9]+\.[0-9]+)", line)[0]
+    result['start'] = float(match)
 
     # get the output line that speaks about video
     lines_video = [l for l in lines if ' Video: ' in l and re.search('\d+x\d+', l)]
